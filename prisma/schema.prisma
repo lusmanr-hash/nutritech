@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employees   Employee[]
+  weeklyMenus WeeklyMenu[]
+}
+
+model Employee {
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  passwordHash        String
+  firstName           String
+  lastName             String
+  companyId           String
+  onboardingCompleted Boolean  @default(false)
+  role                String   @default("employee") // employee | admin
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  company     Company          @relation(fields: [companyId], references: [id])
+  profile     EmployeeProfile?
+  weeklyPlans WeeklyPlan[]
+}
+
+model EmployeeProfile {
+  id         String @id @default(cuid())
+  employeeId String @unique
+
+  // Physical
+  age      Int?
+  gender   String? // male, female, other, prefer_not_to_say
+  heightCm Float?
+  weightKg Float?
+
+  // Goals
+  primaryGoal    String? // lose_weight, gain_muscle, maintain, energy, general_health
+  targetWeightKg Float?
+
+  // Dietary
+  dietaryPreference String? // omnivore, vegetarian, vegan, pescatarian
+  allergies         String? // JSON array as string
+  intolerances      String? // JSON array as string
+  dislikedFoods     String?
+
+  // Activity
+  activityLevel     String? // sedentary, lightly_active, moderately_active, very_active
+  exerciseFrequency String? // none, 1-2_per_week, 3-4_per_week, 5+_per_week
+  exerciseType      String?
+
+  // Health
+  healthConditions      String? // JSON array as string
+  currentlyOnMedication Boolean @default(false)
+  medicationNotes       String?
+
+  // Eating habits
+  mealsPerDay               String? // 2, 3, 4, 5+
+  snackingHabit             String? // rarely, sometimes, often
+  waterIntakeLiters         String? // less_than_1, 1_to_2, 2_to_3, more_than_3
+  biggestNutritionChallenge String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
+
+model WeeklyMenu {
+  id            String   @id @default(cuid())
+  companyId     String
+  weekStartDate DateTime
+  createdAt     DateTime @default(now())
+
+  company     Company      @relation(fields: [companyId], references: [id])
+  menuItems   MenuItem[]
+  weeklyPlans WeeklyPlan[]
+}
+
+model MenuItem {
+  id           String  @id @default(cuid())
+  weeklyMenuId String
+  dayOfWeek    String // sunday, monday, tuesday, wednesday, thursday, friday
+  mealType     String // breakfast, lunch, dinner, snack
+  name         String
+  description  String?
+  calories     Int?
+  protein      Float?
+  carbs        Float?
+  fat          Float?
+  tags         String? // JSON array as string
+
+  weeklyMenu WeeklyMenu @relation(fields: [weeklyMenuId], references: [id], onDelete: Cascade)
+}
+
+model WeeklyPlan {
+  id              String   @id @default(cuid())
+  employeeId      String
+  weeklyMenuId    String
+  weekStartDate   DateTime
+  recommendations String // JSON string of AI-generated plan
+  sentAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  employee   Employee   @relation(fields: [employeeId], references: [id])
+  weeklyMenu WeeklyMenu @relation(fields: [weeklyMenuId], references: [id])
+}
