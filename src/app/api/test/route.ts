@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@libsql/client/web";
 
 export async function GET() {
   try {
@@ -10,14 +9,29 @@ export async function GET() {
       return NextResponse.json({ error: "No TURSO_DATABASE_URL" });
     }
 
-    // Use HTTPS URL for the web client
     const httpUrl = url.replace("libsql://", "https://");
-    const client = createClient({ url: httpUrl, authToken });
-    const result = await client.execute("SELECT count(*) as count FROM Company");
 
+    // Test raw HTTP request to Turso
+    const response = await fetch(`${httpUrl}/v2/pipeline`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requests: [
+          { type: "execute", stmt: { sql: "SELECT count(*) as count FROM Company" } },
+          { type: "close" },
+        ],
+      }),
+    });
+
+    const text = await response.text();
     return NextResponse.json({
-      ok: true,
-      count: result.rows[0].count,
+      status: response.status,
+      url: httpUrl.substring(0, 40) + "...",
+      tokenLength: authToken?.length,
+      response: text.substring(0, 500),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
